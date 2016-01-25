@@ -64,21 +64,61 @@ void asciilower (char *str) {
   }
 }
 
+void cpmdirentry_to_unixname (struct cpmdirentry *dir, char *unixname) {
+  // convert 'abcdef   .e  ' to 'abcdef.e'
+  // and     'abcdef   .   ' to 'abcdef'
+  unixname[8]='.';
+  strncpy (unixname, dir->filename, 8);
+  strncpy (unixname+9, dir->extension, 3);
+  trunc2ascii (unixname); asciilower (unixname);
+
+  // remove blanks in filename
+  short blanks = 0;
+  for (short i = 7; i>0; i--) {
+    if (unixname[i] == ' ')
+      blanks++;
+    else
+      break;
+  }
+  if (blanks > 0) {
+    // memcpy (unixname + 8 - blanks, unixname + 8, 4);  // copy ext + \0
+    for (short i = 8; i < 13; i++)
+      unixname[i-blanks] = unixname[i];
+  }
+
+  // remove blanks in extension
+  short len = strlen (unixname);
+  for (short i = 1; i < 4; i++) {
+    if (unixname[len-i] == ' ') 
+      unixname[len-i] = 0;  // terminate
+    else
+      break;
+  }
+  
+  // remove trailing dot
+  len = strlen (unixname);
+  if (unixname[len-1] == '.')
+    unixname[len-1] = 0;
+}
+
 
 #define CPM_RECORDSIZE 128
-#define CPM_BLOCKSIZE  4096
-//  -> 180 blocks on one 720 KB disk
+#define CPM_BLOCKSIZE  4096       //  -> 180 blocks on one 720 KB disk
+#define CPM_DIRSTART   (9*1024)
+#define CPM_DATAZONE   (11*1024)
 
 
 void show_direntry (struct cpmdirentry *dir) {
   char filename[] = "        .   ";
+  char unixname[13];
   char attr[] = "--";
   if ((dir->extension[0] & 128) == 128) attr[0]='r';  // read-only
   if ((dir->extension[1] & 128) == 128) attr[1]='s';  // system
   strncpy (filename, dir->filename, 8);
   strncpy (filename+9, dir->extension, 3);
   trunc2ascii (filename); asciilower (filename);
-  printf ("%02d %s %s (%d) %7d   ", dir->user, filename, attr, dir->extentcounter,
+  cpmdirentry_to_unixname (dir, unixname);
+  printf ("%02d %-12s %s (%d) %7d   ", dir->user, unixname, attr, dir->extentcounter,
     dir->numrecords * CPM_RECORDSIZE);
   for (short i = 0; i < 16; i++) {
     if (dir->alloc[i] != 0) {
@@ -101,10 +141,10 @@ int main (int argc, char *argv[]) {
     exit (1);
   }
   
-  // hexdump (file + 9*1024, file + 9*1024 + 512);
+  // hexdump (file + CPM_DIRSTART, file + 9*1024 + 512);
 
 
-  file += 9*1024;
+  file += CPM_DIRSTART;
   struct cpmdirentry *d;
   d = (struct cpmdirentry *)file;
 
