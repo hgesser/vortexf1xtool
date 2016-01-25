@@ -1,5 +1,5 @@
 # vortexf1xtool
-The `vortex` tools lets you access 720 KB CP/M disk images (Vortex VDOS format on double-density, DD, disks) as used by Schneider / Amstrad CPC home computers with an external floppy drive (Vortex F1-X, either the 5.25" or the 3.5" version). Note that no other CP/M formats are supported though it should be possible to quickly modify the code so that other formats could work as well.
+The `vortex` tool lets you access 720 KB CP/M disk images (Vortex VDOS format on double-density, DD, disks) as used by Schneider / Amstrad CPC home computers with an external floppy drive (Vortex F1-X, either the 5.25" or the 3.5" version). Note that no other CP/M formats are supported though it should be possible to quickly modify the code so that other formats could work as well.
 
 ## Usage
 
