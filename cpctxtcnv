@@ -3,20 +3,41 @@
 
 from sys import argv
 from os import system
+from re import sub
 
-def backup_and_convert (f):
+def backup_and_convert (f, conv):
   fbak = f + ".bak"
   system ("mv -f '" + f + "' '" + fbak + "'")
   # cannot use tr, does not support UTF8
   # system ("tr '{|}[\\]~' 'äöüÄÖÜß' < '" + fbak + "' > '" + f + "'")
-  system ("sed -e 's/{/ä/g' -e 's/|/ö/g' -e 's/}/ü/g' -e 's/\[/Ä/g' -e 's/\\\\/Ö/g' " +
-    "-e 's/\]/Ü/g' -e 's/~/ß/g' -e 's/" + chr(26) + ".*//g' < '" + fbak + "' > '" + f + "'")
+
+  if conv == True:
+    system ("sed -e 's/{/ä/g' -e 's/|/ö/g' -e 's/}/ü/g' -e 's/\[/Ä/g' -e 's/\\\\/Ö/g' " +
+      "-e 's/\]/Ü/g' -e 's/~/ß/g' < '" + fbak + "' > '" + f + "'")
+  else:
+    system ("cp '" + fbak + "' '" + f + "'")
+
+  fd = open (f,"r")
+  content = fd.read()
+  content = sub (chr(26)+".*", "", content)
+  fd.close ()
+  fd = open (f,"w") 
+  fd.truncate (0)
+  fd.seek (0)
+  fd.write (content)
+  fd.close ()
 
 if len(argv) < 2:
   print ("cpctxtcnv: cpctxtcnf file [files...]")
   exit (0)
 
-for file in argv[1:]:
+if argv[1] == "-n":
+  liste = argv[2:]
+  convert_DE = False
+else:
+  liste = argv[1:]
+  convert_DE = True
+
+for file in liste:
   print ("Converting " + file)
-  backup_and_convert (file)
-  # convert (file)
+  backup_and_convert (file, convert_DE)
