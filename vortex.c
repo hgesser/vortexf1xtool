@@ -245,7 +245,7 @@ void handle_vortex_image (char *vortexfilename, short action) {
     int res = mkdir (dumpdirname, 0770);
     if (res != 0) {
       printf ("Error: cannot create %s directory\n", dumpdirname);
-      return;
+      goto leave;   // goto, for closing mmap and file
     }
   }
 
@@ -256,6 +256,7 @@ void handle_vortex_image (char *vortexfilename, short action) {
   }
 
   // clean up
+  leave:
   munmap (file, CPM_IMAGE_FILESIZE);
   close (fd);
 }
@@ -276,7 +277,6 @@ int main (int argc, char *argv[]) {
   } else
   if (strcmp(argv[1], "dump") == 0) {   // dump
     action = ACTION_DUMP;
-    printf ("dump not implemented yet\n");
   } else {
     printf ("%s: %s (ls|dump) file [files]\n", argv[0], argv[0]);
     exit (1);
