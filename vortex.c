@@ -10,10 +10,16 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 typedef unsigned long uint;
 
 #define PEEK(addr) (*(addr))
+
+#define DUMPDIRNAMESIZE 512
+char dumpdirname[DUMPDIRNAMESIZE];
+int current_filesize;
 
 
 struct cpmdirentry {
@@ -81,7 +87,6 @@ void cpmdirentry_to_unixname (struct cpmdirentry *dir, char *unixname) {
       break;
   }
   if (blanks > 0) {
-    // memcpy (unixname + 8 - blanks, unixname + 8, 4);  // copy ext + \0
     for (short i = 8; i < 13; i++)
       unixname[i-blanks] = unixname[i];
   }
@@ -102,13 +107,47 @@ void cpmdirentry_to_unixname (struct cpmdirentry *dir, char *unixname) {
 }
 
 
-#define CPM_RECORDSIZE 128
-#define CPM_BLOCKSIZE  4096       //  -> 180 blocks on one 720 KB disk
-#define CPM_DIRSTART   (9*1024)
-#define CPM_DATAZONE   (11*1024)
+#define CPM_RECORDSIZE  128
+#define CPM_BLOCKSIZE   4096       //  -> 180 blocks on one 720 KB disk
+#define CPM_DIRSTART    (9*1024)
+#define CPM_DATAZONE    (13*1024)
+#define CPM_DIR_ENTRIES 128
+#define CPM_MAX_BLOCKS_PER_EXTENT 4
+#define CPM_IMAGE_FILESIZE (720*1024)
 
+#define DIR_ENTRY_FIRST     0
+#define DIR_ENTRY_CONTINUES 1
 
-void show_direntry (struct cpmdirentry *dir) {
+#define ACTION_DISPLAY 1
+#define ACTION_DUMP    2
+
+void handle_direntry (struct cpmdirentry *dir, void *fulldir, 
+                      short action, short cont);
+
+void find_more_direntries (struct cpmdirentry *dir, void *fulldir, short action) {
+  struct cpmdirentry *d;
+  d = (struct cpmdirentry *)fulldir;
+  
+  int filesize = dir->numrecords * CPM_RECORDSIZE;
+
+  for (int i = 0; i < CPM_DIR_ENTRIES; i++) {
+    if ((d+i)->user != 0xe5 &&      // e5 = no entry
+        (d+i) != dir &&             // ignore first entry
+        memcmp (d+i, dir, 12) == 0) { // same user + filename
+      handle_direntry (d + i, d, action, DIR_ENTRY_CONTINUES);
+      filesize += (d+i)->numrecords * CPM_RECORDSIZE;
+    }
+  }
+  
+  current_filesize = filesize;   // global
+  
+  if (action == ACTION_DISPLAY) {
+    printf (" +              total: %7d\n", filesize);
+  }
+}
+
+void handle_direntry (struct cpmdirentry *dir, void *fulldir, 
+                      short action, short cont) {
   char filename[] = "        .   ";
   char unixname[13];
   char attr[] = "--";
@@ -118,43 +157,133 @@ void show_direntry (struct cpmdirentry *dir) {
   strncpy (filename+9, dir->extension, 3);
   trunc2ascii (filename); asciilower (filename);
   cpmdirentry_to_unixname (dir, unixname);
-  printf ("%02d %-12s %s (%d) %7d   ", dir->user, unixname, attr, dir->extentcounter,
-    dir->numrecords * CPM_RECORDSIZE);
-  for (short i = 0; i < 16; i++) {
-    if (dir->alloc[i] != 0) {
-      if (i%4 == 0) printf (" [%d] ", i/4 + (dir->extentcounter/4)*4);
-      printf ("%3d ", dir->alloc[i]);
-    }
-  }
-  printf ("\n");
-}
 
-int main (int argc, char *argv[]) {
-//  int fd = open ("/Users/esser/dos/cpc-001.dsk", O_RDONLY);
-  printf ("Directory listing for '%s'\n", argv[1]);
-  int fd = open (argv[1], O_RDONLY);
-  char *file = mmap (0, 720*1024, PROT_READ, MAP_SHARED, fd, 0);
-  if (file == MAP_FAILED) {
-    printf ("fd = %d\n", fd);
-    printf ("Pointer: %p\n", file);
-    perror ("mmap: ");
-    exit (1);
+  current_filesize = dir->numrecords * CPM_RECORDSIZE;   // global
+
+  // display file info
+  if (action == ACTION_DISPLAY) {
+    if (cont == DIR_ENTRY_FIRST)
+      printf ("%02d %-12s %s (%d) %7d   ", dir->user, unixname, attr, 
+              dir->extentcounter, dir->numrecords * CPM_RECORDSIZE);
+    else
+      printf (" +                 (%d) %7d   ", 
+              dir->extentcounter, dir->numrecords * CPM_RECORDSIZE);
+  
+    for (short i = 0; i < 16; i++) {
+      if (dir->alloc[i] != 0) {
+        if (i % CPM_MAX_BLOCKS_PER_EXTENT == 0) 
+          printf (" [%d] ", i / CPM_MAX_BLOCKS_PER_EXTENT +
+            (dir->extentcounter / CPM_MAX_BLOCKS_PER_EXTENT) * 
+               CPM_MAX_BLOCKS_PER_EXTENT);
+        printf ("%3d ", dir->alloc[i]);
+      }
+    }
+    printf ("\n");
+  }
+
+  // dump file
+  int fd;
+  if (action == ACTION_DUMP) {
+    printf ("DUMPING... %s\n", unixname);
+    char dumpfilename[256];
+    strcpy (dumpfilename, dumpdirname);
+    strcat (dumpfilename, unixname);
+    printf ("dumping to %s\n", dumpfilename);
+    fd = open (dumpfilename, O_WRONLY | O_CREAT, 0666);
+    lseek (fd, (dir->extentcounter / CPM_MAX_BLOCKS_PER_EXTENT) * 
+           CPM_MAX_BLOCKS_PER_EXTENT * CPM_BLOCKSIZE, SEEK_SET);
+    for (short i = 0; i < 16; i++) {
+      if (dir->alloc[i] != 0) {
+        write (fd, ((char*)fulldir) - CPM_DIRSTART + CPM_DATAZONE
+               +(dir->alloc[i]-1) * CPM_BLOCKSIZE, CPM_BLOCKSIZE);
+      }
+    }
+
+  }
+
+  if (dir->alloc[15] != 0
+      && dir->extentcounter < CPM_MAX_BLOCKS_PER_EXTENT) {
+    find_more_direntries (dir, fulldir, action);
   }
   
-  // hexdump (file + CPM_DIRSTART, file + 9*1024 + 512);
+  if (action == ACTION_DUMP) {
+    ftruncate (fd, current_filesize);   // cut to multiple of record size
+    close (fd);
+  }
+}
 
+void help (char *prog) {
+  printf ("%s: %s (ls|dump) file [files]\n", prog, prog);
+}
 
+void handle_vortex_image (char *vortexfilename, short action) {
+  if (action == ACTION_DISPLAY) {
+    printf ("Directory listing for '%s'\n", vortexfilename);
+  }
+
+  int fd = open (vortexfilename, O_RDONLY);
+  char *file = mmap (0, CPM_IMAGE_FILESIZE, PROT_READ, MAP_SHARED, fd, 0);
+  if (file == MAP_FAILED) {
+    printf ("Error: cannot open %s\n", vortexfilename);
+    close (fd);
+    return;
+  }
+  
   file += CPM_DIRSTART;
   struct cpmdirentry *d;
   d = (struct cpmdirentry *)file;
 
   // 4K directory = 128 entries
-  printf ("Us Name         RS  #E     Size   [E] 4K Blocks\n");
-  printf ("----------------------------------------------------------------\n");
-  for (int i = 0; i < 128; i++) {
-    if ((d+i)->user != 0xe5)   // e5 = no entry
-      show_direntry (d + i);
+  if (action == ACTION_DISPLAY) {
+    printf ("Us Name         RS  #E     Size   [E] 4K Blocks\n");
+    printf ("-------------------------------------------------------------------------------\n");
+  } else
+  if (action == ACTION_DUMP) {
+    int len = strlen(vortexfilename);
+    strcpy (dumpdirname, vortexfilename);
+    strcat (dumpdirname, ".d/");
+    int res = mkdir (dumpdirname, 0770);
+    if (res != 0) {
+      printf ("Error: cannot create %s directory\n", dumpdirname);
+      return;
+    }
   }
 
+  for (int i = 0; i < CPM_DIR_ENTRIES; i++) {
+    if ((d+i)->user != 0xe5 &&                            // e5 = no entry
+        (d+i)->extentcounter < CPM_MAX_BLOCKS_PER_EXTENT) // 0..3: first extent
+      handle_direntry (d + i, d, action, DIR_ENTRY_FIRST);
+  }
 
+  // clean up
+  munmap (file, CPM_IMAGE_FILESIZE);
+  close (fd);
+}
+
+int main (int argc, char *argv[]) {
+  short action;
+  if (argc == 1) {                      // no argument
+    help (argv[0]);
+    exit (0);
+  }
+  
+  if (strcmp(argv[1], "help") == 0) {   // help
+    help (argv[0]);
+    exit (0);
+  } else
+  if (strcmp(argv[1], "ls") == 0) {     // ls
+    action = ACTION_DISPLAY;
+  } else
+  if (strcmp(argv[1], "dump") == 0) {   // dump
+    action = ACTION_DUMP;
+    printf ("dump not implemented yet\n");
+  } else {
+    printf ("%s: %s (ls|dump) file [files]\n", argv[0], argv[0]);
+    exit (1);
+  }
+  
+  
+
+  for (short i = 2; i < argc; i++)
+    handle_vortex_image (argv[i], action);
 }
