@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from sys import argv
+from os import system
+
+def backup_and_convert (f):
+  fbak = f + ".bak"
+  system ("mv -f '" + f + "' '" + fbak + "'")
+  # cannot use tr, does not support UTF8
+  # system ("tr '{|}[\\]~' 'äöüÄÖÜß' < '" + fbak + "' > '" + f + "'")
+  system ("sed -e 's/{/ä/g' -e 's/|/ö/g' -e 's/}/ü/g' -e 's/\[/Ä/g' -e 's/\\\\/Ö/g' " +
+    "-e 's/\]/Ü/g' -e 's/~/ß/g' -e 's/" + chr(26) + ".*//g' < '" + fbak + "' > '" + f + "'")
+
+if len(argv) < 2:
+  print ("cpctxtcnv: cpctxtcnf file [files...]")
+  exit (0)
+
+for file in argv[1:]:
+  print ("Converting " + file)
+  backup_and_convert (file)
+  # convert (file)
