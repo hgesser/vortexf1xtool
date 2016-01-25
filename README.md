@@ -46,6 +46,8 @@ When using the `dump` command option, the tool will create a new subdirectory (n
 ...
 ```
 
+Note that file sizes of the extracted files are always multiples of 128 -- this cannot be helped, since CP/M 2.2 does not store exact filesize on the disk. Each CP/M (or AMSDOS/VDOS) application used their own way to signal end-of-file, e.g. via an ^Z or 0xE5 marker or by adding some kind of header information in the file.
+
 ## How to get images?
 
 If you have physical media, the easiest approach is to use an old computer that still supports 5.25" drives (in BIOS settings you will find the drive type "5.25 inch, 1200 KByte"). Install an old Linux system on that computer's hard disk; I used a Linux system with kernel 2.x, the main point was that `/dev` is not a virtual filesystem but a regular directory filled with hundreds of device files. If so, there should be two files `/dev/fd0h720` (for the `A:` drive) and `/dev/fd1h720` (the `B:` drive). Using these filenames guarantees that the floppy disks are read in the proper way (as double-density, DD, disks -- not SD or HD). Modern Linux systems will only provide the generic `/dev/fd0` and `/dev/fd1` which might or might not work.
