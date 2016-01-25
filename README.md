@@ -3,7 +3,7 @@ The `vortex` tool lets you access 720 KB CP/M disk images (Vortex VDOS format on
 
 ## Usage
 
-You can call the `vortex` tool with either an `ls` command option or a `dump` command option, followed by the names(s) of one or more floppy disk image files. The `ls` command will displays information about the files stored on that disk image, such as follows:
+You can call the `vortex` tool with either an `ls` command option or a `dump` command option, followed by the names(s) of one or more floppy disk image files. The `ls` command will display information about the files stored on that disk image, such as follows:
 
 ```
 [esser@macbookpro:~]$ vortex ls cpc-004.dsk 
