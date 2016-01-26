@@ -1,13 +1,15 @@
 # vortexf1xtool
 The `vortex` tool lets you access 720 KB CP/M disk images (Vortex VDOS format on double-density, DD, disks) as used by Schneider / Amstrad CPC home computers with an external floppy drive (Vortex F1-X, either the 5.25" or the 3.5" version). Note that no other CP/M formats are supported though it should be possible to quickly modify the code so that other formats could work as well.
 
+**Note:** This tool is _not_ compatible with the DSK format used by some CPC emulators (e.g. cpcemu) which stores headers for the disk, each sector and each track. `vortex` only works with raw disk images (as created by the Linux tool `dd`).
+
 ## Usage
 
 You can call the `vortex` tool with either an `ls` command option or a `dump` command option, followed by the names(s) of one or more floppy disk image files. The `ls` command will display information about the files stored on that disk image, such as follows:
 
 ```
-[esser@macbookpro:~]$ vortex ls cpc-004.dsk 
-Directory listing for 'cpc-004.dsk'
+[esser@macbookpro:~]$ vortex ls cpc-004.img 
+Directory listing for 'cpc-004.img'
 Us Name         RS  #E     Size   [E] 4K Blocks
 -------------------------------------------------------------------------------
 00 copytool.com -- (0)    3840    [0]   1 
@@ -29,9 +31,9 @@ Us Name         RS  #E     Size   [E] 4K Blocks
 When using the `dump` command option, the tool will create a new subdirectory (named `whatever.d/` if the image file was called `whatever`) and copy all files from the CP/M image to that directory:
 
 ```
-[esser@macbookpro:~]$ vortex dump cpc-004.dsk 
+[esser@macbookpro:~]$ vortex dump cpc-004.img 
 ...
-[esser@macbookpro:~]$ ls -l cpc-004.dsk.d/
+[esser@macbookpro:~]$ ls -l cpc-004.img.d/
 -rw-r--r--   1 esser  staff   3840 25 Jan 06:37 copytool.com
 -rw-r--r--   1 esser  staff    128 25 Jan 06:37 files-0.bin
 -rw-r--r--   1 esser  staff    128 25 Jan 06:37 files-01.bin
@@ -46,7 +48,11 @@ When using the `dump` command option, the tool will create a new subdirectory (n
 ...
 ```
 
-Note that file sizes of the extracted files are always multiples of 128 -- this cannot be helped, since CP/M 2.2 does not store exact filesize on the disk. Each CP/M (or AMSDOS/VDOS) application used their own way to signal end-of-file, e.g. via an ^Z or 0xE5 marker or by adding some kind of header information in the file.
+Note that file sizes of the extracted files are always multiples of 128 -- this cannot be helped, since CP/M 2.2 does not store exact filesize on the disk. Each CP/M (or AMSDOS/VDOS) application used their own way to signal end-of-file, e.g. via an ^Z or 0xE5 marker or by adding some kind of header information in the file. Use the included `cpctxtcnv` tool on text files in order to strip the trailing bytes. (Do not use it on binary files as this is likely to break the tool.) 
+
+## Modify `cpctxtcnv` for non-German text files
+
+`cpctxtcnv` converts the character set `{|}[\]~` to `äöüÄÖÜß` (UTF-8-encoded). CPC users had to decide whether to use German umlauts (and suffer loss of the brackets, backslash and tilde) or keep those characters (which are needed for programming) and work without umlauts. This was in part because the upper 128 characters of the CPC's character set were line drawing characters. English users of the tool should remove the regular expressions that replace these characters.
 
 ## How to get images?
 
