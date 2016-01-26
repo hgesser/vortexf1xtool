@@ -50,7 +50,7 @@ When using the `dump` command option, the tool will create a new subdirectory (n
 
 Note that file sizes of the extracted files are always multiples of 128 -- this cannot be helped, since CP/M 2.2 does not store exact filesize on the disk. Each CP/M (or AMSDOS/VDOS) application used their own way to signal end-of-file, e.g. via an ^Z or 0xE5 marker or by adding some kind of header information in the file. Use the included `cpctxtcnv` tool on text files in order to strip the trailing bytes. (Do not use it on binary files as this is likely to break the tool.) 
 
-## Modify `cpctxtcnv` for non-German text files
+## Using `cpctxtcnv` with non-German text files
 
 `cpctxtcnv` converts the character set `{|}[\]~` to `äöüÄÖÜß` (UTF-8-encoded). CPC users had to decide whether to use German umlauts (and suffer loss of the brackets, backslash and tilde) or keep those characters (which are needed for programming) and work without umlauts. This was in part because the upper 128 characters of the CPC's character set were line drawing characters. English users of the tool should use the `-n` option so that this translation step is omitted; in that case the tool will only search for the 0x1a marker and truncate the text file.
 
