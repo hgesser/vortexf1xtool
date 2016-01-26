@@ -52,7 +52,7 @@ Note that file sizes of the extracted files are always multiples of 128 -- this 
 
 ## Modify `cpctxtcnv` for non-German text files
 
-`cpctxtcnv` converts the character set `{|}[\]~` to `äöüÄÖÜß` (UTF-8-encoded). CPC users had to decide whether to use German umlauts (and suffer loss of the brackets, backslash and tilde) or keep those characters (which are needed for programming) and work without umlauts. This was in part because the upper 128 characters of the CPC's character set were line drawing characters. English users of the tool should remove the regular expressions that replace these characters.
+`cpctxtcnv` converts the character set `{|}[\]~` to `äöüÄÖÜß` (UTF-8-encoded). CPC users had to decide whether to use German umlauts (and suffer loss of the brackets, backslash and tilde) or keep those characters (which are needed for programming) and work without umlauts. This was in part because the upper 128 characters of the CPC's character set were line drawing characters. English users of the tool should use the `-n` option so that this translation step is omitted; in that case the tool will only search for the 0x1a marker and truncate the text file.
 
 ## How to get images?
 
