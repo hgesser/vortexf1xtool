@@ -28,7 +28,7 @@ def backup_and_convert (f, conv):
   fd.close ()
 
 if len(argv) < 2:
-  print ("cpctxtcnv: cpctxtcnf file [files...]")
+  print ("cpctxtcnv: cpctxtcnf [-n] file [files...]")
   exit (0)
 
 if argv[1] == "-n":
