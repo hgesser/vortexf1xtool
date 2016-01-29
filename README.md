@@ -61,7 +61,7 @@ If you have physical media, the easiest approach is to use an old computer that 
 For reading, `dd` or `ddrescue` work fine. I used dd:
 
 ```
-dd if=/dev/fd0h720 of=cpc-0xx.dsk
+dd if=/dev/fd0h720 of=cpc-0xx.img
 ```
 
 and transfered the files to a different machine where I used the `vortex` tool to extract the files.
