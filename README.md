@@ -48,7 +48,7 @@ When using the `dump` command option, the tool will create a new subdirectory (n
 ...
 ```
 
-Note that file sizes of the extracted files are always multiples of 128 -- this cannot be helped, since CP/M 2.2 does not store exact filesize on the disk. Each CP/M (or AMSDOS/VDOS) application used their own way to signal end-of-file, e.g. via an ^Z or 0xE5 marker or by adding some kind of header information in the file. Use the included `cpctxtcnv` tool on text files in order to strip the trailing bytes. (Do not use it on binary files as this is likely to break the tool.) 
+Note that file sizes of the extracted files are always multiples of 128 -- this cannot be helped, since CP/M 2.2 does not store exact filesize on the disk. Each CP/M (or AMSDOS/VDOS) application used their own way to signal end-of-file, e.g. via an ^Z or 0xE5 marker or by adding some kind of header information in the file. Use the included `cpctxtcnv` tool on text files in order to strip the trailing bytes. (Do not use it on binary files as this is likely to corrupt the file.) 
 
 ## Using `cpctxtcnv` with non-German text files
 
